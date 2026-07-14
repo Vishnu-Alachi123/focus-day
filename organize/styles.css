@@ -866,3 +866,92 @@ html, body {
   .stat-pill { padding: 4px 8px; font-size: 0.72rem; }
   .unscheduled-panel { width: 170px; }
 }
+
+/* ===== VOICE FEATURE ===== */
+.btn-voice {
+  background: linear-gradient(135deg, #06b6d4, #7c3aed);
+  color: #fff; border: none; border-radius: var(--radius-sm);
+  padding: 8px 14px; font-weight: 700; cursor: pointer; font-size: .9rem;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.btn-voice:hover { transform: translateY(-1px); box-shadow: 0 6px 18px #06b6d455; }
+
+.voice-modal { max-width: 560px; }
+.voice-hint { color: var(--text-muted); font-size: .9rem; margin-bottom: 18px; line-height: 1.5; }
+.voice-hint em { color: var(--accent2); font-style: italic; }
+
+.voice-mic-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 8px 0 18px; }
+.voice-mic {
+  position: relative; width: 84px; height: 84px; border-radius: 50%;
+  border: none; cursor: pointer; font-size: 2rem;
+  background: radial-gradient(circle at 30% 30%, #2a2a4a, #16213e);
+  box-shadow: inset 0 0 0 2px var(--border); transition: transform var(--transition);
+  display: grid; place-items: center;
+}
+.voice-mic:hover { transform: scale(1.05); }
+.voice-mic-icon { position: relative; z-index: 2; }
+.voice-mic-pulse { position: absolute; inset: 0; border-radius: 50%; }
+.voice-mic.recording { box-shadow: inset 0 0 0 2px #ef4444, 0 0 30px #ef444466; }
+.voice-mic.recording .voice-mic-pulse {
+  border: 2px solid #ef4444; animation: micpulse 1.4s ease-out infinite;
+}
+@keyframes micpulse {
+  0% { transform: scale(1); opacity: .7; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+.voice-status { color: var(--text-muted); font-size: .88rem; min-height: 1.2em; text-align: center; }
+
+.voice-transcript {
+  min-height: 64px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface3); padding: 12px 14px; color: var(--text); font-size: .95rem;
+  line-height: 1.5; outline: none; transition: border-color var(--transition);
+}
+.voice-transcript:focus { border-color: var(--accent2); }
+.voice-transcript:empty::before { content: attr(data-placeholder); color: var(--text-muted); }
+
+.voice-engine-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 12px; font-size: .8rem; color: var(--text-muted);
+}
+.voice-settings-btn {
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted);
+  border-radius: var(--radius-sm); padding: 4px 10px; cursor: pointer; font-size: .8rem;
+}
+.voice-settings-btn:hover { color: var(--text); border-color: var(--accent2); }
+
+.voice-settings {
+  margin-top: 12px; padding: 14px; background: var(--surface3);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+.voice-settings label { display: block; font-size: .78rem; color: var(--text-muted); margin: 8px 0 4px; }
+.voice-settings input {
+  width: 100%; padding: 8px 10px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); font-size: .85rem;
+}
+.voice-settings-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+
+.voice-review { margin-top: 18px; }
+.voice-review-title { font-weight: 700; margin-bottom: 10px; font-size: .95rem; }
+.voice-review-list { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; }
+.vr-row {
+  background: var(--surface3); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 10px; display: flex; flex-direction: column; gap: 8px;
+}
+.vr-name {
+  width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); padding: 7px 10px; font-size: .9rem; font-weight: 600;
+}
+.vr-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.vr-controls select {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); padding: 5px 8px; font-size: .8rem; cursor: pointer;
+}
+.vr-prio-high { border-color: var(--high) !important; color: var(--high) !important; }
+.vr-prio-medium { border-color: var(--medium) !important; color: var(--medium) !important; }
+.vr-prio-low { border-color: var(--low) !important; color: var(--low) !important; }
+.vr-est { font-size: .78rem; color: var(--text-muted); margin-left: auto; }
+.vr-del {
+  background: transparent; border: none; color: var(--text-muted); cursor: pointer;
+  font-size: .9rem; padding: 4px 6px; border-radius: 6px;
+}
+.vr-del:hover { color: var(--high); background: var(--high-bg); }

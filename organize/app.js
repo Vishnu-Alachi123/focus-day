@@ -585,6 +585,28 @@ function saveModal() {
   rerender();
 }
 
+// ===== ADD FROM VOICE / PARSER =====
+// draft: { name, dayIndex, dueDate|null, priority, estHours, estMinutes }
+function addTaskFromDraft(draft) {
+  const task = {
+    id: generateId(),
+    name: draft.name,
+    dayIndex: Math.max(0, Math.min(6, draft.dayIndex ?? getTodayIndex())),
+    priority: ['high', 'medium', 'low'].includes(draft.priority) ? draft.priority : 'medium',
+    estHours: draft.estHours || 0,
+    estMinutes: draft.estMinutes || 0,
+    notes: '',
+    dueDate: draft.dueDate || null,
+    completed: false,
+    timeSpent: 0,
+    scheduledHour: null,
+    createdAt: Date.now(),
+  };
+  state.tasks.push(task);
+  saveState();
+  return task;
+}
+
 // ===== DRAG & DROP =====
 function setupDropZone(el, target) {
   el.addEventListener('dragover', (e) => {

@@ -39,6 +39,7 @@
           <span id="streak-count">0</span> streak
         </div>
       </div>
+      <button class="btn-voice header-add" id="btn-open-voice" title="Add tasks by voice">🎤 Voice</button>
       <button class="btn-add-task header-add" id="btn-open-quick-add">+ Quick Add</button>
     </header>
 
@@ -125,6 +126,59 @@
     </div>
   </div>
 
+  <!-- ===== VOICE MODAL ===== -->
+  <div class="modal-overlay" id="voice-modal" style="display:none">
+    <div class="modal voice-modal">
+      <div class="modal-header">
+        <h2>🎤 Talk to add tasks</h2>
+        <button class="modal-close" id="voice-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="voice-hint">Just say what's on your mind — I'll turn it into tasks and drop them on the right days.
+          Try: <em>"Finish my lab report by Wednesday, it's urgent, and go to the gym tomorrow for an hour."</em></p>
+
+        <div class="voice-mic-wrap">
+          <button class="voice-mic" id="voice-mic" aria-label="Start recording">
+            <span class="voice-mic-icon">🎙️</span>
+            <span class="voice-mic-pulse"></span>
+          </button>
+          <div class="voice-status" id="voice-status">Tap the mic and start talking</div>
+        </div>
+
+        <div class="voice-transcript" id="voice-transcript" contenteditable="true"
+             data-placeholder="…or type here if you'd rather not talk"></div>
+
+        <div class="voice-engine-row">
+          <span id="voice-engine-label">Parser: on-device (no key needed)</span>
+          <button class="voice-settings-btn" id="voice-settings-btn" title="Use an LLM instead">⚙ LLM</button>
+        </div>
+
+        <div class="voice-settings" id="voice-settings" style="display:none">
+          <label>LLM endpoint (OpenAI-compatible)</label>
+          <input type="text" id="llm-endpoint" placeholder="https://api.openai.com/v1/chat/completions" />
+          <label>Model</label>
+          <input type="text" id="llm-model" placeholder="gpt-4o-mini" />
+          <label>API key <span class="optional">(stored only in your browser)</span></label>
+          <input type="password" id="llm-key" placeholder="sk-…" autocomplete="off" />
+          <div class="voice-settings-actions">
+            <button class="btn-cancel" id="llm-clear">Use on-device</button>
+            <button class="btn-save" id="llm-save">Save LLM</button>
+          </div>
+        </div>
+
+        <div class="voice-review" id="voice-review" style="display:none">
+          <div class="voice-review-title">Review &amp; edit before adding</div>
+          <div class="voice-review-list" id="voice-review-list"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" id="voice-cancel">Cancel</button>
+        <button class="btn-save" id="voice-parse">Parse ✨</button>
+        <button class="btn-save" id="voice-add" style="display:none">Add tasks ✅</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== ACTIVE TIMER WIDGET ===== -->
   <div class="timer-widget" id="timer-widget" style="display:none">
     <div class="timer-task-name" id="timer-task-name">Task name</div>
@@ -148,5 +202,7 @@
   <div class="xp-toast" id="xp-toast"></div>
 
   <script src="app.js"></script>
+  <script src="voice-parser.js"></script>
+  <script src="voice.js"></script>
 </body>
 </html>
