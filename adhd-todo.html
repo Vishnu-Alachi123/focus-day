@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Focus Day</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f4f0;
+    --surface: #ffffff;
+    --surface2: #f0ece6;
+    --text: #2a2520;
+    --text-muted: #9a9088;
+    --accent: #e8a598;
+    --border: rgba(42,37,32,0.08);
+
+    --p1: #f2b5a0; /* high - soft coral */
+    --p2: #b5d4c8; /* med - sage */
+    --p3: #b8cce8; /* low - periwinkle */
+    --p4: #d4c5e8; /* later - lavender */
+  }
+
+  html, body {
+    height: 100%;
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  /* ── TOP BAR ── */
+  #topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  #datetime-block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-right: auto;
+  }
+  #clock { font-family: 'Space Mono', monospace; font-size: 1.9rem; font-weight: 700; letter-spacing: -1px; }
+  #date-str { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.2px; }
+
+  .stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    background: var(--surface2);
+    border-radius: 50px;
+    padding: 10px 20px 10px 10px;
+  }
+  .stat-ring-wrap { position: relative; width: 48px; height: 48px; }
+  .stat-ring-wrap svg { position: absolute; top:0; left:0; transform: rotate(-90deg); }
+  .stat-ring-wrap .ring-bg { fill: none; stroke: var(--border); stroke-width: 3.5; }
+  .stat-ring-wrap .ring-fill { fill: none; stroke-width: 3.5; stroke-linecap: round; transition: stroke-dashoffset 0.6s ease; }
+  .stat-ring-center { position: absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family: 'Space Mono', monospace; font-size: 0.6rem; font-weight: 700; }
+  .stat-info { display: flex; flex-direction: column; gap: 2px; }
+  .stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.9px; }
+  .stat-value { font-family: 'Space Mono', monospace; font-size: 1.05rem; font-weight: 700; }
+
+  /* ── TOPBAR ACTIONS ── */
+  .topbar-actions { display: flex; gap: 8px; align-items: center; margin-left: 8px; }
+  .topbar-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--surface2);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text);
+    transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
+  }
+  .topbar-btn:hover { background: #e5e0da; transform: scale(1.03); }
+  #import-file { display: none; }
+
+  /* ── MAIN LIST ── */
+  #list-view {
+    position: fixed;
+    top: 97px; left: 0; right: 0; bottom: 0;
+    overflow-y: auto;
+    padding: 24px 28px 100px;
+  }
+
+  #list-view h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.2rem;
+    margin-bottom: 20px;
+    letter-spacing: -0.5px;
+  }
+  #list-view h1 span { font-style: italic; color: var(--accent); }
+
+  .task-card {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .task-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+  .task-card.done { opacity: 0.45; }
+  .task-card.done .task-title { text-decoration: line-through; }
+
+  .task-color-bar {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 5px;
+    border-radius: 16px 0 0 16px;
+  }
+  .task-main { flex: 1; padding-left: 4px; }
+  .task-title { font-size: 1rem; font-weight: 600; margin-bottom: 2px; }
+  .task-desc-preview { font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 400px; }
+  .task-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .task-time-est { font-family: 'Space Mono', monospace; font-size: 0.8rem; font-weight: 700; }
+  .task-time-worked { font-size: 0.72rem; color: var(--text-muted); }
+  .priority-badge {
+    font-size: 0.65rem; font-weight: 600;
+    padding: 3px 10px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  /* ── FAB ── */
+  #fab {
+    position: fixed;
+    bottom: 32px; right: 32px;
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: var(--text);
+    color: #fff;
+    font-size: 2rem;
+    border: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    transition: transform 0.2s, box-shadow 0.2s;
+    z-index: 200;
+  }
+  #fab:hover { transform: scale(1.1) rotate(45deg); box-shadow: 0 12px 32px rgba(0,0,0,0.22); }
+
+  /* ── MODAL (ADD TASK) ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 500;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface);
+    border-radius: 24px;
+    padding: 32px;
+    width: 480px;
+    max-width: 95vw;
+    transform: translateY(20px);
+    transition: transform 0.25s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal h2 { font-family: 'DM Serif Display', serif; font-size: 1.6rem; margin-bottom: 20px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); margin-bottom: 6px; }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    background: var(--surface2);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
+  .field textarea { resize: vertical; min-height: 80px; }
+  .priority-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+  .prio-btn {
+    padding: 8px 4px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-align: center;
+    transition: border-color 0.15s, transform 0.1s;
+  }
+  .prio-btn:hover { transform: scale(1.04); }
+  .prio-btn.selected { border-color: var(--text); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .btn { padding: 11px 24px; border-radius: 12px; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600; transition: opacity 0.15s; }
+  .btn-primary { background: var(--text); color: #fff; flex: 1; }
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-ghost { background: var(--surface2); color: var(--text); }
+  .btn-ghost:hover { opacity: 0.75; }
+
+  /* ── TASK FOCUS VIEW ── */
+  #focus-view {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    z-index: 300;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(.4,0,.2,1);
+  }
+  #focus-view.open { transform: translateX(0); }
+
+  #focus-top {
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  #back-btn {
+    background: var(--surface2);
+    border: none;
+    border-radius: 12px;
+    width: 40px; height: 40px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  #back-btn:hover { background: #e0dbd5; }
+
+  #focus-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 40px 20px;
+    display: flex;
+    gap: 40px;
+  }
+
+  #focus-left { flex: 1; }
+  #focus-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2.8rem, 6vw, 5rem);
+    line-height: 1.05;
+    letter-spacing: -1px;
+    margin-bottom: 16px;
+  }
+  #focus-priority-tag {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+  }
+  #focus-timer-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin: 20px 0;
+  }
+  #timer-ring-wrap {
+    position: relative;
+    width: min(260px, 50vw);
+    height: min(260px, 50vw);
+  }
+  #timer-ring-wrap svg {
+    position: absolute; inset: 0;
+    transform: rotate(-90deg);
+  }
+  #timer-ring-bg { fill: none; stroke: var(--border); stroke-width: 10; }
+  #timer-ring-fill { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 0.5s ease; }
+  #timer-center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  #timer-display {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 700;
+    letter-spacing: -1px;
+  }
+  #timer-est-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+
+  #start-btn {
+    padding: 14px 48px;
+    border-radius: 50px;
+    border: none;
+    background: var(--text);
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  }
+  #start-btn:hover { transform: scale(1.04); box-shadow: 0 10px 28px rgba(0,0,0,0.2); }
+  #start-btn.running { background: #e8a598; color: var(--text); }
+
+  #done-btn {
+    padding: 12px 32px;
+    border-radius: 50px;
+    border: 2px solid var(--border);
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text);
+    transition: background 0.15s;
+  }
+  #done-btn:hover { background: var(--surface2); }
+
+  #focus-right {
+    width: 260px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  #focus-desc-box {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid var(--border);
+  }
+  #focus-desc-box h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 12px; }
+  #focus-desc-list { list-style: none; }
+  #focus-desc-list li {
+    padding: 7px 0;
+    font-size: 0.9rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  #focus-desc-list li:last-child { border-bottom: none; }
+  #focus-desc-list li::before { content: '▸'; color: var(--accent); flex-shrink: 0; margin-top: 1px; }
+  #focus-plain-desc { font-size: 0.9rem; line-height: 1.6; color: var(--text-muted); }
+
+  #focus-est-box {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 16px 20px;
+    border: 1px solid var(--border);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+  }
+
+  /* ── CAROUSEL ── */
+  #carousel-section {
+    padding: 0 28px 20px;
+    flex-shrink: 0;
+  }
+  #carousel-section h4 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 10px; }
+  #carousel-track {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+  #carousel-track::-webkit-scrollbar { display: none; }
+  .carousel-card {
+    flex-shrink: 0;
+    width: 160px;
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 14px;
+    border: 1.5px solid var(--border);
+    cursor: pointer;
+    transition: transform 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .carousel-card:hover { transform: translateY(-2px); }
+  .carousel-color-bar { position: absolute; top: 0; left: 0; right: 0; height: 4px; border-radius: 14px 14px 0 0; }
+  .carousel-card-title { font-size: 0.85rem; font-weight: 600; margin-top: 6px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .carousel-card-time { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--text-muted); }
+
+  /* ── EMPTY STATE ── */
+  #empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+  #empty-state .em { font-size: 3rem; margin-bottom: 12px; }
+  #empty-state p { font-size: 1rem; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #d0cbc5; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div id="datetime-block">
+    <div id="clock">00:00:00</div>
+    <div id="date-str">Loading…</div>
+  </div>
+
+  <!-- Tasks Done -->
+  <div class="stat-pill">
+    <div class="stat-ring-wrap">
+      <svg viewBox="0 0 48 48" width="48" height="48">
+        <circle class="ring-bg" cx="24" cy="24" r="19"/>
+        <circle class="ring-fill" id="ring-tasks" cx="24" cy="24" r="19" stroke="#b5d4c8" stroke-dasharray="119.4" stroke-dashoffset="119.4"/>
+      </svg>
+      <div class="stat-ring-center" id="ring-tasks-pct">0%</div>
+    </div>
+    <div class="stat-info">
+      <span class="stat-label">Tasks Done</span>
+      <span class="stat-value" id="stat-tasks">0 / 0</span>
+    </div>
+  </div>
+
+  <!-- Estimated Total -->
+  <div class="stat-pill">
+    <div class="stat-ring-wrap">
+      <svg viewBox="0 0 48 48" width="48" height="48">
+        <circle class="ring-bg" cx="24" cy="24" r="19"/>
+        <circle class="ring-fill" id="ring-est" cx="24" cy="24" r="19" stroke="#b8cce8" stroke-dasharray="119.4" stroke-dashoffset="0"/>
+      </svg>
+      <div class="stat-ring-center" id="ring-est-pct">-</div>
+    </div>
+    <div class="stat-info">
+      <span class="stat-label">Estimated</span>
+      <span class="stat-value" id="stat-est">0h 0m</span>
+    </div>
+  </div>
+
+  <!-- Time Worked -->
+  <div class="stat-pill">
+    <div class="stat-ring-wrap">
+      <svg viewBox="0 0 48 48" width="48" height="48">
+        <circle class="ring-bg" cx="24" cy="24" r="19"/>
+        <circle class="ring-fill" id="ring-worked" cx="24" cy="24" r="19" stroke="#f2b5a0" stroke-dasharray="119.4" stroke-dashoffset="119.4"/>
+      </svg>
+      <div class="stat-ring-center" id="ring-worked-pct">0%</div>
+    </div>
+    <div class="stat-info">
+      <span class="stat-label">Worked</span>
+      <span class="stat-value" id="stat-worked">0h 0m</span>
+    </div>
+  </div>
+
+  <!-- Left -->
+  <div class="stat-pill">
+    <div class="stat-ring-wrap">
+      <svg viewBox="0 0 48 48" width="48" height="48">
+        <circle class="ring-bg" cx="24" cy="24" r="19"/>
+        <circle class="ring-fill" id="ring-left" cx="24" cy="24" r="19" stroke="#d4c5e8" stroke-dasharray="119.4" stroke-dashoffset="0"/>
+      </svg>
+      <div class="stat-ring-center" id="ring-left-pct">-</div>
+    </div>
+    <div class="stat-info">
+      <span class="stat-label">Left</span>
+      <span class="stat-value" id="stat-left">0h 0m</span>
+    </div>
+  </div>
+
+  <!-- Export / Import -->
+  <div class="topbar-actions">
+    <button class="topbar-btn" id="export-btn">⬇ Export</button>
+    <button class="topbar-btn" id="import-btn">⬆ Import</button>
+    <input type="file" id="import-file" accept=".json">
+  </div>
+</div>
+
+<!-- LIST VIEW -->
+<div id="list-view">
+  <h1>Today's <span>Focus</span></h1>
+  <div id="task-list"></div>
+  <div id="empty-state" style="display:none">
+    <div class="em">🌱</div>
+    <p>No tasks yet — add one to get started!</p>
+  </div>
+</div>
+
+<!-- FAB -->
+<button id="fab" title="Add task">+</button>
+
+<!-- ADD TASK MODAL -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <h2>New Task</h2>
+    <div class="field">
+      <label>Title</label>
+      <input type="text" id="f-title" placeholder="What needs doing?" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Description (one item per line for bullet points)</label>
+      <textarea id="f-desc" placeholder="Details, steps, notes…"></textarea>
+    </div>
+    <div class="field">
+      <label>Estimated Time (minutes)</label>
+      <input type="number" id="f-time" placeholder="e.g. 30" min="1">
+    </div>
+    <div class="field">
+      <label>Priority</label>
+      <div class="priority-grid">
+        <div class="prio-btn selected" data-prio="1" style="background:#f2b5a0">🔥 High</div>
+        <div class="prio-btn" data-prio="2" style="background:#b5d4c8">✦ Medium</div>
+        <div class="prio-btn" data-prio="3" style="background:#b8cce8">◎ Low</div>
+        <div class="prio-btn" data-prio="4" style="background:#d4c5e8">✿ Later</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="modal-cancel">Cancel</button>
+      <button class="btn btn-primary" id="modal-save">Add Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOCUS VIEW -->
+<div id="focus-view">
+  <div id="focus-top">
+    <button id="back-btn">←</button>
+    <div style="font-size:0.8rem;color:var(--text-muted)">Task Focus</div>
+  </div>
+
+  <div id="focus-body">
+    <div id="focus-left">
+      <div id="focus-priority-tag"></div>
+      <div id="focus-title">Task Title</div>
+
+      <div id="focus-timer-block">
+        <div id="timer-ring-wrap">
+          <svg id="timer-ring-svg" viewBox="0 0 260 260">
+            <circle id="timer-ring-bg" cx="130" cy="130" r="110"/>
+            <circle id="timer-ring-fill" cx="130" cy="130" r="110"/>
+          </svg>
+          <div id="timer-center">
+            <div id="timer-display">00:00</div>
+            <div id="timer-est-label">/ 0 min</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <button id="start-btn">▶ Start</button>
+          <button id="done-btn">✓ Mark Done</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="focus-right">
+      <div id="focus-desc-box">
+        <h3>Notes</h3>
+        <ul id="focus-desc-list"></ul>
+        <p id="focus-plain-desc" style="display:none"></p>
+      </div>
+      <div id="focus-est-box" id="focus-est-info"></div>
+    </div>
+  </div>
+
+  <div id="carousel-section">
+    <h4>Other Tasks</h4>
+    <div id="carousel-track"></div>
+  </div>
+</div>
+
+<script>
+// ──────────────────────────
+// STATE
+// ──────────────────────────
+let tasks = JSON.parse(localStorage.getItem('focusday-tasks') || '[]');
+let selectedPrio = 1;
+let activeTaskId = null;
+let timerInterval = null;
+let timerRunning = false;
+let sessionSeconds = 0;
+let timerStartTimestamp = 0;
+const CIRC = 2 * Math.PI * 110; // timer ring circumference
+
+const PRIO_COLORS = { 1: '#f2b5a0', 2: '#b5d4c8', 3: '#b8cce8', 4: '#d4c5e8' };
+const PRIO_NAMES = { 1: '🔥 High', 2: '✦ Medium', 3: '◎ Low', 4: '✿ Later' };
+
+function save() { localStorage.setItem('focusday-tasks', JSON.stringify(tasks)); }
+
+function fmtMin(mins) {
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+function fmtSec(secs) {
+  const m = Math.floor(secs / 60), s = secs % 60;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+// ──────────────────────────
+// CLOCK
+// ──────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  document.getElementById('date-str').textContent =
+    now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ──────────────────────────
+// STATS
+// ──────────────────────────
+function updateStats() {
+  const totalEst = tasks.reduce((s, t) => s + (t.estMins || 0), 0);
+  const totalWorked = tasks.reduce((s, t) => s + Math.round((t.workedSecs || 0) / 60), 0);
+  const totalLeft = Math.max(0, totalEst - totalWorked);
+  const doneTasks = tasks.filter(t => t.done).length;
+  const totalTasks = tasks.length;
+
+  document.getElementById('stat-est').textContent = fmtMin(totalEst);
+  document.getElementById('stat-worked').textContent = fmtMin(totalWorked);
+  document.getElementById('stat-left').textContent = fmtMin(totalLeft);
+  document.getElementById('stat-tasks').textContent = `${doneTasks} / ${totalTasks}`;
+
+  // circumference of r=19 circle = 2*PI*19 ≈ 119.4
+  const C = 119.4;
+  const workedPct = totalEst > 0 ? totalWorked / totalEst : 0;
+  const leftPct = totalEst > 0 ? totalLeft / totalEst : 1;
+  const tasksPct = totalTasks > 0 ? doneTasks / totalTasks : 0;
+
+  document.getElementById('ring-worked').style.strokeDashoffset = C - workedPct * C;
+  document.getElementById('ring-left').style.strokeDashoffset = C - leftPct * C;
+  document.getElementById('ring-tasks').style.strokeDashoffset = C - tasksPct * C;
+
+  document.getElementById('ring-worked-pct').textContent = totalEst > 0 ? Math.round(workedPct * 100) + '%' : '0%';
+  document.getElementById('ring-left-pct').textContent = totalEst > 0 ? Math.round(leftPct * 100) + '%' : '-';
+  document.getElementById('ring-tasks-pct').textContent = totalTasks > 0 ? Math.round(tasksPct * 100) + '%' : '0%';
+  document.getElementById('ring-est-pct').textContent = totalTasks || '-';
+}
+
+// ──────────────────────────
+// RENDER LIST
+// ──────────────────────────
+function renderList() {
+  const list = document.getElementById('task-list');
+  const empty = document.getElementById('empty-state');
+  const pending = tasks.filter(t => !t.done);
+  const done = tasks.filter(t => t.done);
+  const sorted = [...pending, ...done];
+
+  list.innerHTML = '';
+  if (sorted.length === 0) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  sorted.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'task-card' + (t.done ? ' done' : '');
+    el.dataset.id = t.id;
+    el.innerHTML = `
+      <div class="task-color-bar" style="background:${PRIO_COLORS[t.prio]}"></div>
+      <div class="task-main">
+        <div class="task-title">${t.title}</div>
+        <div class="task-desc-preview">${t.desc || '—'}</div>
+      </div>
+      <div class="task-meta">
+        <span class="priority-badge" style="background:${PRIO_COLORS[t.prio]}">${PRIO_NAMES[t.prio]}</span>
+        <span class="task-time-est">${t.estMins ? fmtMin(t.estMins) : '—'}</span>
+        ${t.workedSecs ? `<span class="task-time-worked">Worked: ${fmtMin(Math.round(t.workedSecs/60))}</span>` : ''}
+      </div>`;
+    el.addEventListener('click', () => openFocus(t.id));
+    list.appendChild(el);
+  });
+  updateStats();
+}
+
+// ──────────────────────────
+// FOCUS VIEW
+// ──────────────────────────
+const focusView = document.getElementById('focus-view');
+const timerDisplay = document.getElementById('timer-display');
+const timerEstLabel = document.getElementById('timer-est-label');
+const timerRingFill = document.getElementById('timer-ring-fill');
+const startBtn = document.getElementById('start-btn');
+
+// Setup ring
+timerRingFill.setAttribute('fill', 'none');
+timerRingFill.setAttribute('stroke-width', '10');
+timerRingFill.setAttribute('stroke-linecap', 'round');
+timerRingFill.style.strokeDasharray = CIRC;
+timerRingFill.style.strokeDashoffset = CIRC;
+document.getElementById('timer-ring-bg').setAttribute('fill', 'none');
+document.getElementById('timer-ring-bg').setAttribute('stroke', 'var(--border)');
+document.getElementById('timer-ring-bg').setAttribute('stroke-width', '10');
+
+function openFocus(id) {
+  stopTimer(false);
+  activeTaskId = id;
+  sessionSeconds = 0;
+  renderFocus();
+  focusView.classList.add('open');
+}
+
+function renderFocus() {
+  const t = tasks.find(x => x.id === activeTaskId);
+  if (!t) return;
+
+  document.getElementById('focus-title').textContent = t.title;
+  const ptag = document.getElementById('focus-priority-tag');
+  ptag.textContent = PRIO_NAMES[t.prio];
+  ptag.style.background = PRIO_COLORS[t.prio];
+
+  // desc
+  const descList = document.getElementById('focus-desc-list');
+  const plainDesc = document.getElementById('focus-plain-desc');
+  const lines = (t.desc || '').split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length > 1) {
+    descList.style.display = 'block';
+    plainDesc.style.display = 'none';
+    descList.innerHTML = lines.map(l => `<li>${l}</li>`).join('');
+  } else if (lines.length === 1) {
+    descList.style.display = 'none';
+    plainDesc.style.display = 'block';
+    plainDesc.textContent = lines[0];
+  } else {
+    descList.style.display = 'none';
+    plainDesc.style.display = 'block';
+    plainDesc.textContent = 'No description.';
+  }
+
+  // est info
+  document.getElementById('focus-est-box').textContent =
+    `Est: ${t.estMins ? fmtMin(t.estMins) : '—'}  |  Worked: ${t.workedSecs ? fmtMin(Math.round(t.workedSecs/60)) : '0m'}`;
+
+  // timer ring color
+  timerRingFill.setAttribute('stroke', PRIO_COLORS[t.prio]);
+  timerEstLabel.textContent = `/ ${t.estMins || 0} min`;
+
+  // update timer display from session
+  updateTimerDisplay(t);
+
+  // start btn state
+  startBtn.textContent = timerRunning ? '⏸ Pause' : '▶ Start';
+  startBtn.className = timerRunning ? 'running' : '';
+
+  // carousel
+  renderCarousel();
+}
+
+function updateTimerDisplay(t) {
+  const total = (t.workedSecs || 0) + sessionSeconds;
+  timerDisplay.textContent = fmtSec(sessionSeconds);
+  const estSecs = (t.estMins || 0) * 60;
+  const pct = estSecs > 0 ? Math.min(1, total / estSecs) : 0;
+  timerRingFill.style.strokeDashoffset = CIRC - pct * CIRC;
+}
+
+function startTimer() {
+  timerRunning = true;
+  startBtn.textContent = '⏸ Pause';
+  startBtn.classList.add('running');
+  timerStartTimestamp = performance.now() - (sessionSeconds * 1000);
+  timerInterval = setInterval(() => {
+    sessionSeconds = Math.floor((performance.now() - timerStartTimestamp) / 1000);
+    const t = tasks.find(x => x.id === activeTaskId);
+    if (t) updateTimerDisplay(t);
+  }, 250); // poll 4x/sec so display is smooth and never drifts
+}
+
+function stopTimer(save_ = true) {
+  if (!timerRunning) return;
+  // Capture final accurate elapsed before clearing
+  sessionSeconds = Math.floor((performance.now() - timerStartTimestamp) / 1000);
+  clearInterval(timerInterval);
+  timerRunning = false;
+  startBtn.textContent = '▶ Start';
+  startBtn.classList.remove('running');
+  if (save_ && activeTaskId) {
+    const t = tasks.find(x => x.id === activeTaskId);
+    if (t) {
+      t.workedSecs = (t.workedSecs || 0) + sessionSeconds;
+      sessionSeconds = 0;
+      timerStartTimestamp = 0;
+      save();
+      updateStats();
+      renderList();
+      renderFocus();
+    }
+  }
+}
+
+startBtn.addEventListener('click', () => {
+  if (timerRunning) stopTimer(true);
+  else startTimer();
+});
+
+document.getElementById('done-btn').addEventListener('click', () => {
+  stopTimer(true);
+  const t = tasks.find(x => x.id === activeTaskId);
+  if (t) { t.done = !t.done; save(); renderList(); renderFocus(); }
+});
+
+document.getElementById('back-btn').addEventListener('click', () => {
+  stopTimer(true);
+  focusView.classList.remove('open');
+  renderList();
+});
+
+// ──────────────────────────
+// CAROUSEL
+// ──────────────────────────
+function renderCarousel() {
+  const track = document.getElementById('carousel-track');
+  const others = tasks.filter(t => t.id !== activeTaskId && !t.done);
+  track.innerHTML = '';
+  if (others.length === 0) {
+    track.innerHTML = '<span style="font-size:0.8rem;color:var(--text-muted);padding:8px 0">No other tasks</span>';
+    return;
+  }
+  others.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'carousel-card';
+    el.innerHTML = `
+      <div class="carousel-color-bar" style="background:${PRIO_COLORS[t.prio]}"></div>
+      <div class="carousel-card-title">${t.title}</div>
+      <div class="carousel-card-time">${t.estMins ? fmtMin(t.estMins) : '—'}</div>`;
+    el.addEventListener('click', () => {
+      stopTimer(true);
+      activeTaskId = t.id;
+      sessionSeconds = 0;
+      renderFocus();
+    });
+    track.appendChild(el);
+  });
+}
+
+// ──────────────────────────
+// ADD TASK MODAL
+// ──────────────────────────
+document.getElementById('fab').addEventListener('click', () => {
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-desc').value = '';
+  document.getElementById('f-time').value = '';
+  document.getElementById('add-modal').classList.add('open');
+  document.getElementById('f-title').focus();
+});
+
+document.getElementById('modal-cancel').addEventListener('click', () => {
+  document.getElementById('add-modal').classList.remove('open');
+});
+
+document.getElementById('add-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('add-modal'))
+    document.getElementById('add-modal').classList.remove('open');
+});
+
+document.querySelectorAll('.prio-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.prio-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedPrio = parseInt(btn.dataset.prio);
+  });
+});
+
+document.getElementById('modal-save').addEventListener('click', () => {
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) { document.getElementById('f-title').focus(); return; }
+  const estVal = parseInt(document.getElementById('f-time').value);
+  const task = {
+    id: Date.now().toString(),
+    title,
+    desc: document.getElementById('f-desc').value.trim(),
+    prio: selectedPrio,
+    estMins: isNaN(estVal) ? 0 : estVal,
+    workedSecs: 0,
+    done: false,
+    created: Date.now()
+  };
+  tasks.push(task);
+  save();
+  renderList();
+  document.getElementById('add-modal').classList.remove('open');
+});
+
+// enter to save
+document.getElementById('f-title').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('modal-save').click();
+});
+
+// ──────────────────────────
+// EXPORT / IMPORT
+// ──────────────────────────
+document.getElementById('export-btn').addEventListener('click', () => {
+  const data = JSON.stringify(tasks, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `focusday-tasks-${dateStr}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('import-btn').addEventListener('click', () => {
+  document.getElementById('import-file').value = '';
+  document.getElementById('import-file').click();
+});
+
+document.getElementById('import-file').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const imported = JSON.parse(ev.target.result);
+      if (!Array.isArray(imported)) throw new Error('Not an array');
+      // Merge: keep existing tasks, add imported ones that don't already exist by id
+      const existingIds = new Set(tasks.map(t => t.id));
+      const newTasks = imported.filter(t => !existingIds.has(t.id));
+      tasks = [...tasks, ...newTasks];
+      save();
+      renderList();
+      showToast(`✓ Imported ${newTasks.length} task${newTasks.length !== 1 ? 's' : ''}`);
+    } catch {
+      showToast('Invalid file — make sure it is a Focus Day export');
+    }
+  };
+  reader.readAsText(file);
+});
+
+function showToast(msg) {
+  let toast = document.getElementById('toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.style.cssText = `
+      position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
+      background:var(--text); color:#fff; padding:10px 22px; border-radius:30px;
+      font-size:0.85rem; font-weight:600; z-index:9999;
+      opacity:0; transition:opacity 0.2s; pointer-events:none;
+    `;
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 2500);
+}
+
+// ──────────────────────────
+// INIT
+// ──────────────────────────
+renderList();
+</script>
+</body>
+</html>
