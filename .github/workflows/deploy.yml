@@ -1,0 +1,36 @@
+name: Deploy Focus Day
+
+# Publishes the static app in organize/ to the gh-pages branch,
+# served at https://vishnu-alachi123.github.io/focus-day/
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'organize/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Add .nojekyll
+        run: touch organize/.nojekyll
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./organize
+          publish_branch: gh-pages
+          force_orphan: true
