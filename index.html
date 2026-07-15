@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FocusFlow — Weekly Planner</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ===== WEEK VIEW ===== -->
+  <div id="app-week" class="view active">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo">⚡ FocusFlow</div>
+        <div class="week-label" id="week-label">This Week</div>
+      </div>
+      <div class="header-stats">
+        <div class="stat-pill xp-pill" title="XP earned this week">
+          <span class="stat-icon">⭐</span>
+          <span id="total-xp">0</span> XP
+        </div>
+        <div class="stat-pill" title="Tasks completed">
+          <span class="stat-icon">✅</span>
+          <span id="tasks-done">0</span>/<span id="tasks-total">0</span>
+        </div>
+        <div class="stat-pill" title="Time worked">
+          <span class="stat-icon">⏱</span>
+          <span id="time-worked">0h 0m</span>
+        </div>
+        <div class="stat-pill completion-pill" title="Completion rate">
+          <span class="stat-icon">🎯</span>
+          <span id="completion-pct">0%</span>
+        </div>
+        <div class="stat-pill streak-pill" title="Day streak">
+          <span class="stat-icon">🔥</span>
+          <span id="streak-count">0</span> streak
+        </div>
+      </div>
+      <button class="btn-voice header-add" id="btn-open-voice" title="Add tasks by voice">🎤 Voice</button>
+      <button class="btn-add-task header-add" id="btn-open-quick-add">+ Quick Add</button>
+    </header>
+
+    <!-- Weekly progress bar -->
+    <div class="weekly-progress-bar">
+      <div class="weekly-progress-fill" id="weekly-progress-fill"></div>
+      <span class="weekly-progress-label" id="weekly-progress-label">0% complete</span>
+    </div>
+
+    <!-- Board -->
+    <div class="board" id="board">
+      <!-- Columns injected by JS -->
+    </div>
+
+  </div>
+
+  <!-- ===== DAY VIEW ===== -->
+  <div id="app-day" class="view">
+    <header class="header day-header">
+      <button class="btn-back" id="btn-back">← Week</button>
+      <div class="day-title" id="day-title">Monday</div>
+      <div class="day-stats">
+        <div class="stat-pill"><span class="stat-icon">✅</span><span id="day-done">0</span>/<span id="day-total">0</span></div>
+        <div class="stat-pill"><span class="stat-icon">⏱</span><span id="day-time">0h 0m</span></div>
+        <div class="stat-pill xp-pill"><span class="stat-icon">⭐</span><span id="day-xp">0</span> XP</div>
+      </div>
+    </header>
+
+    <div class="day-progress-bar">
+      <div class="day-progress-fill" id="day-progress-fill"></div>
+      <span class="day-progress-label" id="day-progress-label">0% complete</span>
+    </div>
+
+    <div class="day-layout">
+      <!-- Time slots -->
+      <div class="time-column" id="time-column">
+        <!-- injected by JS -->
+      </div>
+      <!-- Unscheduled tasks -->
+      <div class="unscheduled-panel">
+        <div class="unscheduled-header">📋 Unscheduled</div>
+        <div class="unscheduled-list" id="unscheduled-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TASK MODAL ===== -->
+  <div class="modal-overlay" id="task-modal" style="display:none">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-title">New Task</h2>
+        <button class="modal-close" id="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <label>Task name</label>
+        <input type="text" id="task-name-input" placeholder="What needs to be done?" autocomplete="off" />
+
+        <label>Day</label>
+        <select id="task-day-select"></select>
+
+        <label>Priority</label>
+        <div class="priority-picker" id="priority-picker">
+          <button class="priority-btn" data-priority="high">🔴 High</button>
+          <button class="priority-btn" data-priority="medium">🟡 Medium</button>
+          <button class="priority-btn" data-priority="low">🟢 Low</button>
+        </div>
+
+        <label>Estimated time</label>
+        <div class="time-picker">
+          <input type="number" id="task-hours" min="0" max="23" value="0" /> h
+          <input type="number" id="task-minutes" min="0" max="59" value="30" /> m
+        </div>
+
+        <label>Due date <span class="optional">(optional)</span></label>
+        <input type="date" id="task-due-date" />
+
+        <label>Notes <span class="optional">(optional)</span></label>
+        <textarea id="task-notes" placeholder="Any extra details..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" id="modal-cancel">Cancel</button>
+        <button class="btn-save" id="modal-save">Save Task ✨</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== VOICE MODAL ===== -->
+  <div class="modal-overlay" id="voice-modal" style="display:none">
+    <div class="modal voice-modal">
+      <div class="modal-header">
+        <h2>🎤 Talk to add tasks</h2>
+        <button class="modal-close" id="voice-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="voice-hint">Just say what's on your mind — I'll turn it into tasks and drop them on the right days.
+          Try: <em>"Finish my lab report by Wednesday, it's urgent, and go to the gym tomorrow for an hour."</em></p>
+
+        <div class="voice-mic-wrap">
+          <button class="voice-mic" id="voice-mic" aria-label="Start recording">
+            <span class="voice-mic-icon">🎙️</span>
+            <span class="voice-mic-pulse"></span>
+          </button>
+          <div class="voice-status" id="voice-status">Tap the mic and start talking</div>
+        </div>
+
+        <div class="voice-transcript" id="voice-transcript" contenteditable="true"
+             data-placeholder="…or type here if you'd rather not talk"></div>
+
+        <div class="voice-engine-row">
+          <span id="voice-engine-label">Parser: on-device (no key needed)</span>
+          <button class="voice-settings-btn" id="voice-settings-btn" title="Use an LLM instead">⚙ LLM</button>
+        </div>
+
+        <div class="voice-settings" id="voice-settings" style="display:none">
+          <label>LLM endpoint (OpenAI-compatible)</label>
+          <input type="text" id="llm-endpoint" placeholder="https://api.openai.com/v1/chat/completions" />
+          <label>Model</label>
+          <input type="text" id="llm-model" placeholder="gpt-4o-mini" />
+          <label>API key <span class="optional">(stored only in your browser)</span></label>
+          <input type="password" id="llm-key" placeholder="sk-…" autocomplete="off" />
+          <div class="voice-settings-actions">
+            <button class="btn-cancel" id="llm-clear">Use on-device</button>
+            <button class="btn-save" id="llm-save">Save LLM</button>
+          </div>
+        </div>
+
+        <div class="voice-review" id="voice-review" style="display:none">
+          <div class="voice-review-title">Review &amp; edit before adding</div>
+          <div class="voice-review-list" id="voice-review-list"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" id="voice-cancel">Cancel</button>
+        <button class="btn-save" id="voice-parse">Parse ✨</button>
+        <button class="btn-save" id="voice-add" style="display:none">Add tasks ✅</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ACTIVE TIMER WIDGET ===== -->
+  <div class="timer-widget" id="timer-widget" style="display:none">
+    <div class="timer-task-name" id="timer-task-name">Task name</div>
+    <div class="timer-ring-wrap">
+      <svg class="timer-ring" viewBox="0 0 100 100">
+        <circle class="ring-bg" cx="50" cy="50" r="44"/>
+        <circle class="ring-fill" id="ring-fill" cx="50" cy="50" r="44"/>
+      </svg>
+      <div class="timer-display" id="timer-display">00:00</div>
+    </div>
+    <div class="timer-controls">
+      <button class="timer-btn" id="timer-pause">⏸</button>
+      <button class="timer-btn timer-stop" id="timer-stop">⏹ Done</button>
+    </div>
+  </div>
+
+  <!-- ===== CONFETTI CANVAS ===== -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- ===== XP TOAST ===== -->
+  <div class="xp-toast" id="xp-toast"></div>
+
+  <script src="app.js"></script>
+  <script src="voice-parser.js"></script>
+  <script src="voice.js"></script>
+</body>
+</html>
